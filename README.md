@@ -1,6 +1,6 @@
 # Deploy and Host Flowise with Railway
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/flowise-3-agentflows-queue-mode)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/flowise-3-agentflows-queue-mode?referralCode=20H68q)
 
 Flowise is an open-source, low-code builder for LLM chatbots, agents and multi-agent Agentflows. This community template runs Flowise 3 in queue mode: a main server for the UI and API, scalable worker containers that execute flows from a Redis queue, Postgres for data and a Railway Bucket for files.
 
