@@ -1,0 +1,583 @@
+{
+  "name": "Flowise 3 Agentflows (Queue Mode)",
+  "description": "Visual LLM agent builder with Redis queue workers for heavy, parallel runs.",
+  "category": "AI/ML",
+  "tags": [
+    "flowise",
+    "agents",
+    "llm",
+    "low-code",
+    "queue",
+    "bullmq",
+    "ai"
+  ],
+  "upstream": {
+    "repo": "FlowiseAI/Flowise",
+    "version": "flowise@3.1.4",
+    "checked": "2026-10-10"
+  },
+  "services": {
+    "Flowise": {
+      "icon": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/flowise.svg",
+      "source": {
+        "image": "flowiseai/flowise:3.1.4"
+      },
+      "startCommand": null,
+      "preDeployCommand": null,
+      "healthcheckPath": "/api/v1/ping",
+      "healthcheckTimeout": 300,
+      "restartPolicyType": "ON_FAILURE",
+      "restartPolicyMaxRetries": 10,
+      "numReplicas": 1,
+      "cronSchedule": null,
+      "publicDomain": true,
+      "targetPort": 3000,
+      "tcpProxy": null,
+      "volume": null,
+      "variables": {
+        "PORT": {
+          "defaultValue": "3000",
+          "description": "HTTP port (public domain target).",
+          "required": false
+        },
+        "MODE": {
+          "defaultValue": "queue",
+          "description": "Queue mode: the main server enqueues executions in Redis (BullMQ), workers run them.",
+          "required": false
+        },
+        "QUEUE_NAME": {
+          "defaultValue": "flowise-queue",
+          "description": "BullMQ queue name (must match on main and workers).",
+          "required": false
+        },
+        "REDIS_URL": {
+          "defaultValue": "redis://${{Redis.REDISUSER}}:${{Redis.REDIS_PASSWORD}}@${{Redis.REDISHOST}}:${{Redis.REDISPORT}}?family=0",
+          "description": "Redis for queue, sessions and streaming. family=0 lets ioredis use IPv6 private networking.",
+          "required": false
+        },
+        "QUEUE_REDIS_EVENT_STREAM_MAX_LEN": {
+          "defaultValue": "10000",
+          "description": "Max events kept per Redis stream.",
+          "required": false
+        },
+        "REMOVE_ON_AGE": {
+          "defaultValue": "86400",
+          "description": "Remove finished jobs after N seconds.",
+          "required": false
+        },
+        "REMOVE_ON_COUNT": {
+          "defaultValue": "10000",
+          "description": "Keep at most N finished jobs.",
+          "required": false
+        },
+        "DATABASE_TYPE": {
+          "defaultValue": "postgres",
+          "description": "Database engine.",
+          "required": false
+        },
+        "DATABASE_HOST": {
+          "defaultValue": "${{Postgres.PGHOST}}",
+          "description": "Postgres private host.",
+          "required": false
+        },
+        "DATABASE_PORT": {
+          "defaultValue": "${{Postgres.PGPORT}}",
+          "description": "Postgres port.",
+          "required": false
+        },
+        "DATABASE_NAME": {
+          "defaultValue": "${{Postgres.PGDATABASE}}",
+          "description": "Postgres database.",
+          "required": false
+        },
+        "DATABASE_USER": {
+          "defaultValue": "${{Postgres.PGUSER}}",
+          "description": "Postgres user.",
+          "required": false
+        },
+        "DATABASE_PASSWORD": {
+          "defaultValue": "${{Postgres.PGPASSWORD}}",
+          "description": "Postgres password.",
+          "required": false
+        },
+        "DATABASE_SSL": {
+          "defaultValue": "false",
+          "description": "Private network; TLS not required.",
+          "required": false
+        },
+        "FLOWISE_SECRETKEY_OVERWRITE": {
+          "defaultValue": "${{secret(48, \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\")}}",
+          "description": "Encryption key for stored credentials, shared by main and workers. Never change after first boot.",
+          "required": false
+        },
+        "JWT_AUTH_TOKEN_SECRET": {
+          "defaultValue": "${{secret(64, \"abcdef0123456789\")}}",
+          "description": "JWT signing secret for access tokens.",
+          "required": false
+        },
+        "JWT_REFRESH_TOKEN_SECRET": {
+          "defaultValue": "${{secret(64, \"abcdef0123456789\")}}",
+          "description": "JWT signing secret for refresh tokens.",
+          "required": false
+        },
+        "JWT_ISSUER": {
+          "defaultValue": "Flowise",
+          "description": "JWT issuer.",
+          "required": false
+        },
+        "JWT_AUDIENCE": {
+          "defaultValue": "Flowise",
+          "description": "JWT audience.",
+          "required": false
+        },
+        "JWT_TOKEN_EXPIRY_IN_MINUTES": {
+          "defaultValue": "360",
+          "description": "Access token lifetime.",
+          "required": false
+        },
+        "JWT_REFRESH_TOKEN_EXPIRY_IN_MINUTES": {
+          "defaultValue": "43200",
+          "description": "Refresh token lifetime.",
+          "required": false
+        },
+        "EXPRESS_SESSION_SECRET": {
+          "defaultValue": "${{secret(64, \"abcdef0123456789\")}}",
+          "description": "Session cookie signing secret.",
+          "required": false
+        },
+        "TOKEN_HASH_SECRET": {
+          "defaultValue": "${{secret(64, \"abcdef0123456789\")}}",
+          "description": "Secret used to hash reset/invite tokens.",
+          "required": false
+        },
+        "STORAGE_TYPE": {
+          "defaultValue": "s3",
+          "description": "Uploaded files go to the Railway Bucket (shared by main and workers).",
+          "required": false
+        },
+        "S3_STORAGE_BUCKET_NAME": {
+          "defaultValue": "${{Bucket.BUCKET}}",
+          "description": "Railway Bucket name.",
+          "required": false
+        },
+        "S3_STORAGE_ACCESS_KEY_ID": {
+          "defaultValue": "${{Bucket.ACCESS_KEY_ID}}",
+          "description": "Railway Bucket access key.",
+          "required": false
+        },
+        "S3_STORAGE_SECRET_ACCESS_KEY": {
+          "defaultValue": "${{Bucket.SECRET_ACCESS_KEY}}",
+          "description": "Railway Bucket secret key.",
+          "required": false
+        },
+        "S3_STORAGE_REGION": {
+          "defaultValue": "${{Bucket.REGION}}",
+          "description": "Railway Bucket region.",
+          "required": false
+        },
+        "S3_ENDPOINT_URL": {
+          "defaultValue": "${{Bucket.ENDPOINT}}",
+          "description": "Railway Bucket S3 endpoint.",
+          "required": false
+        },
+        "S3_FORCE_PATH_STYLE": {
+          "defaultValue": "false",
+          "description": "Railway Buckets use virtual-hosted style; set true only if the bucket's Credentials tab says path-style.",
+          "required": false
+        },
+        "APP_URL": {
+          "defaultValue": "https://${{RAILWAY_PUBLIC_DOMAIN}}",
+          "description": "Public URL (links in emails, secure cookies).",
+          "required": false
+        },
+        "LOG_LEVEL": {
+          "defaultValue": "info",
+          "description": "error | warn | info | verbose | debug.",
+          "required": false
+        },
+        "DISABLE_FLOWISE_TELEMETRY": {
+          "defaultValue": "true",
+          "description": "Disable anonymous telemetry.",
+          "required": false
+        },
+        "FLOWISE_FILE_SIZE_LIMIT": {
+          "defaultValue": "50mb",
+          "description": "Max upload size.",
+          "required": false
+        },
+        "ENABLE_BULLMQ_DASHBOARD": {
+          "defaultValue": "true",
+          "description": "Queue dashboard at /admin/queues (requires a logged-in user).",
+          "required": false
+        },
+        "SMTP_HOST": {
+          "defaultValue": "",
+          "description": "Optional: SMTP server for invites and password resets.",
+          "required": false
+        },
+        "SMTP_PORT": {
+          "defaultValue": "",
+          "description": "Optional: SMTP port (e.g. 465 or 587).",
+          "required": false
+        },
+        "SMTP_USER": {
+          "defaultValue": "",
+          "description": "Optional: SMTP username.",
+          "required": false
+        },
+        "SMTP_PASSWORD": {
+          "defaultValue": "",
+          "description": "Optional: SMTP password.",
+          "required": false
+        },
+        "SMTP_SECURE": {
+          "defaultValue": "true",
+          "description": "Use TLS for SMTP.",
+          "required": false
+        },
+        "SENDER_EMAIL": {
+          "defaultValue": "",
+          "description": "Optional: From address for emails.",
+          "required": false
+        }
+      }
+    },
+    "Flowise Worker": {
+      "icon": "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/flowise.svg",
+      "source": {
+        "image": "flowiseai/flowise-worker:3.1.4"
+      },
+      "startCommand": null,
+      "preDeployCommand": null,
+      "healthcheckPath": "/healthz",
+      "healthcheckTimeout": 300,
+      "restartPolicyType": "ON_FAILURE",
+      "restartPolicyMaxRetries": 10,
+      "numReplicas": 1,
+      "cronSchedule": null,
+      "publicDomain": false,
+      "targetPort": null,
+      "tcpProxy": null,
+      "volume": null,
+      "variables": {
+        "PORT": {
+          "defaultValue": "5566",
+          "description": "Port of the worker's health endpoint (Railway healthcheck).",
+          "required": false
+        },
+        "WORKER_PORT": {
+          "defaultValue": "5566",
+          "description": "Health endpoint port inside the worker image.",
+          "required": false
+        },
+        "WORKER_CONCURRENCY": {
+          "defaultValue": "25",
+          "description": "Executions processed in parallel per worker replica.",
+          "required": false
+        },
+        "MODE": {
+          "defaultValue": "${{Flowise.MODE}}",
+          "description": "Queue mode: the main server enqueues executions in Redis (BullMQ), workers run them.",
+          "required": false
+        },
+        "QUEUE_NAME": {
+          "defaultValue": "${{Flowise.QUEUE_NAME}}",
+          "description": "BullMQ queue name (must match on main and workers).",
+          "required": false
+        },
+        "REDIS_URL": {
+          "defaultValue": "${{Flowise.REDIS_URL}}",
+          "description": "Redis for queue, sessions and streaming. family=0 lets ioredis use IPv6 private networking.",
+          "required": false
+        },
+        "QUEUE_REDIS_EVENT_STREAM_MAX_LEN": {
+          "defaultValue": "${{Flowise.QUEUE_REDIS_EVENT_STREAM_MAX_LEN}}",
+          "description": "Max events kept per Redis stream.",
+          "required": false
+        },
+        "REMOVE_ON_AGE": {
+          "defaultValue": "${{Flowise.REMOVE_ON_AGE}}",
+          "description": "Remove finished jobs after N seconds.",
+          "required": false
+        },
+        "REMOVE_ON_COUNT": {
+          "defaultValue": "${{Flowise.REMOVE_ON_COUNT}}",
+          "description": "Keep at most N finished jobs.",
+          "required": false
+        },
+        "DATABASE_TYPE": {
+          "defaultValue": "${{Flowise.DATABASE_TYPE}}",
+          "description": "Database engine.",
+          "required": false
+        },
+        "DATABASE_HOST": {
+          "defaultValue": "${{Flowise.DATABASE_HOST}}",
+          "description": "Postgres private host.",
+          "required": false
+        },
+        "DATABASE_PORT": {
+          "defaultValue": "${{Flowise.DATABASE_PORT}}",
+          "description": "Postgres port.",
+          "required": false
+        },
+        "DATABASE_NAME": {
+          "defaultValue": "${{Flowise.DATABASE_NAME}}",
+          "description": "Postgres database.",
+          "required": false
+        },
+        "DATABASE_USER": {
+          "defaultValue": "${{Flowise.DATABASE_USER}}",
+          "description": "Postgres user.",
+          "required": false
+        },
+        "DATABASE_PASSWORD": {
+          "defaultValue": "${{Flowise.DATABASE_PASSWORD}}",
+          "description": "Postgres password.",
+          "required": false
+        },
+        "DATABASE_SSL": {
+          "defaultValue": "${{Flowise.DATABASE_SSL}}",
+          "description": "Private network; TLS not required.",
+          "required": false
+        },
+        "FLOWISE_SECRETKEY_OVERWRITE": {
+          "defaultValue": "${{Flowise.FLOWISE_SECRETKEY_OVERWRITE}}",
+          "description": "Encryption key for stored credentials, shared by main and workers. Never change after first boot.",
+          "required": false
+        },
+        "JWT_AUTH_TOKEN_SECRET": {
+          "defaultValue": "${{Flowise.JWT_AUTH_TOKEN_SECRET}}",
+          "description": "JWT signing secret for access tokens.",
+          "required": false
+        },
+        "JWT_REFRESH_TOKEN_SECRET": {
+          "defaultValue": "${{Flowise.JWT_REFRESH_TOKEN_SECRET}}",
+          "description": "JWT signing secret for refresh tokens.",
+          "required": false
+        },
+        "JWT_ISSUER": {
+          "defaultValue": "${{Flowise.JWT_ISSUER}}",
+          "description": "JWT issuer.",
+          "required": false
+        },
+        "JWT_AUDIENCE": {
+          "defaultValue": "${{Flowise.JWT_AUDIENCE}}",
+          "description": "JWT audience.",
+          "required": false
+        },
+        "JWT_TOKEN_EXPIRY_IN_MINUTES": {
+          "defaultValue": "${{Flowise.JWT_TOKEN_EXPIRY_IN_MINUTES}}",
+          "description": "Access token lifetime.",
+          "required": false
+        },
+        "JWT_REFRESH_TOKEN_EXPIRY_IN_MINUTES": {
+          "defaultValue": "${{Flowise.JWT_REFRESH_TOKEN_EXPIRY_IN_MINUTES}}",
+          "description": "Refresh token lifetime.",
+          "required": false
+        },
+        "EXPRESS_SESSION_SECRET": {
+          "defaultValue": "${{Flowise.EXPRESS_SESSION_SECRET}}",
+          "description": "Session cookie signing secret.",
+          "required": false
+        },
+        "TOKEN_HASH_SECRET": {
+          "defaultValue": "${{Flowise.TOKEN_HASH_SECRET}}",
+          "description": "Secret used to hash reset/invite tokens.",
+          "required": false
+        },
+        "STORAGE_TYPE": {
+          "defaultValue": "${{Flowise.STORAGE_TYPE}}",
+          "description": "Uploaded files go to the Railway Bucket (shared by main and workers).",
+          "required": false
+        },
+        "S3_STORAGE_BUCKET_NAME": {
+          "defaultValue": "${{Flowise.S3_STORAGE_BUCKET_NAME}}",
+          "description": "Railway Bucket name.",
+          "required": false
+        },
+        "S3_STORAGE_ACCESS_KEY_ID": {
+          "defaultValue": "${{Flowise.S3_STORAGE_ACCESS_KEY_ID}}",
+          "description": "Railway Bucket access key.",
+          "required": false
+        },
+        "S3_STORAGE_SECRET_ACCESS_KEY": {
+          "defaultValue": "${{Flowise.S3_STORAGE_SECRET_ACCESS_KEY}}",
+          "description": "Railway Bucket secret key.",
+          "required": false
+        },
+        "S3_STORAGE_REGION": {
+          "defaultValue": "${{Flowise.S3_STORAGE_REGION}}",
+          "description": "Railway Bucket region.",
+          "required": false
+        },
+        "S3_ENDPOINT_URL": {
+          "defaultValue": "${{Flowise.S3_ENDPOINT_URL}}",
+          "description": "Railway Bucket S3 endpoint.",
+          "required": false
+        },
+        "S3_FORCE_PATH_STYLE": {
+          "defaultValue": "${{Flowise.S3_FORCE_PATH_STYLE}}",
+          "description": "Railway Buckets use virtual-hosted style; set true only if the bucket's Credentials tab says path-style.",
+          "required": false
+        },
+        "APP_URL": {
+          "defaultValue": "${{Flowise.APP_URL}}",
+          "description": "Public URL (links in emails, secure cookies).",
+          "required": false
+        },
+        "LOG_LEVEL": {
+          "defaultValue": "${{Flowise.LOG_LEVEL}}",
+          "description": "error | warn | info | verbose | debug.",
+          "required": false
+        },
+        "DISABLE_FLOWISE_TELEMETRY": {
+          "defaultValue": "${{Flowise.DISABLE_FLOWISE_TELEMETRY}}",
+          "description": "Disable anonymous telemetry.",
+          "required": false
+        },
+        "FLOWISE_FILE_SIZE_LIMIT": {
+          "defaultValue": "${{Flowise.FLOWISE_FILE_SIZE_LIMIT}}",
+          "description": "Max upload size.",
+          "required": false
+        }
+      }
+    },
+    "Postgres": {
+      "icon": "https://devicons.railway.app/i/postgresql.svg",
+      "source": {
+        "image": "ghcr.io/railwayapp-templates/postgres-ssl:18"
+      },
+      "startCommand": null,
+      "preDeployCommand": null,
+      "healthcheckPath": null,
+      "healthcheckTimeout": null,
+      "restartPolicyType": "ON_FAILURE",
+      "restartPolicyMaxRetries": 10,
+      "numReplicas": 1,
+      "cronSchedule": null,
+      "publicDomain": false,
+      "targetPort": null,
+      "tcpProxy": null,
+      "volume": {
+        "mountPath": "/var/lib/postgresql/data"
+      },
+      "variables": {
+        "PGDATA": {
+          "defaultValue": "/var/lib/postgresql/data/pgdata",
+          "description": "Location where the database will be initialized",
+          "required": false
+        },
+        "PGHOST": {
+          "defaultValue": "${{RAILWAY_PRIVATE_DOMAIN}}",
+          "description": "Railway Private Domain Name.",
+          "required": false
+        },
+        "PGPORT": {
+          "defaultValue": "5432",
+          "description": "Port to connect to Postgres.",
+          "required": false
+        },
+        "PGUSER": {
+          "defaultValue": "${{ POSTGRES_USER }}",
+          "description": "Required variable for Data panel",
+          "required": false
+        },
+        "PGDATABASE": {
+          "defaultValue": "${{POSTGRES_DB}}",
+          "description": "Required variable for the data panel.",
+          "required": false
+        },
+        "PGPASSWORD": {
+          "defaultValue": "${{POSTGRES_PASSWORD}}",
+          "description": "Required variable for Data panel",
+          "required": false
+        },
+        "POSTGRES_DB": {
+          "defaultValue": "railway",
+          "description": "Default database created when image is started.",
+          "required": false
+        },
+        "DATABASE_URL": {
+          "defaultValue": "postgresql://${{PGUSER}}:${{POSTGRES_PASSWORD}}@${{RAILWAY_PRIVATE_DOMAIN}}:5432/${{PGDATABASE}}",
+          "description": "URL to connect to Postgres database.",
+          "required": false
+        },
+        "POSTGRES_USER": {
+          "defaultValue": "postgres",
+          "description": "User to connect to Postgres DB",
+          "required": false
+        },
+        "SSL_CERT_DAYS": {
+          "defaultValue": "820",
+          "description": "SSL certificate expiry in days.",
+          "required": false
+        },
+        "POSTGRES_PASSWORD": {
+          "defaultValue": "${{ secret(32, \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\") }}",
+          "description": "Password to connect to DB",
+          "required": false
+        },
+        "RAILWAY_DEPLOYMENT_DRAINING_SECONDS": {
+          "defaultValue": "60",
+          "description": "Allow Postgres to cleanly shut down",
+          "required": false
+        }
+      }
+    },
+    "Redis": {
+      "icon": "https://cdn.sanity.io/images/sy1jschh/production/0ce0bfdcfbdbf69662b1116671f97c2dd788b655-157x157.svg",
+      "source": {
+        "image": "redis:8.2"
+      },
+      "startCommand": "/bin/sh -c \"rm -rf $RAILWAY_VOLUME_MOUNT_PATH/lost+found/ && exec docker-entrypoint.sh redis-server --requirepass $REDIS_PASSWORD --save 60 1 --dir $RAILWAY_VOLUME_MOUNT_PATH\"",
+      "preDeployCommand": null,
+      "healthcheckPath": null,
+      "healthcheckTimeout": null,
+      "restartPolicyType": "ON_FAILURE",
+      "restartPolicyMaxRetries": 10,
+      "numReplicas": 1,
+      "cronSchedule": null,
+      "publicDomain": false,
+      "targetPort": null,
+      "tcpProxy": null,
+      "volume": {
+        "mountPath": "/data"
+      },
+      "variables": {
+        "REDISHOST": {
+          "defaultValue": "${{RAILWAY_PRIVATE_DOMAIN}}",
+          "description": "Private network hostname of the Redis service, only resolvable from services in the same environment",
+          "required": false
+        },
+        "REDISPORT": {
+          "defaultValue": "6379",
+          "description": "Port that Redis listens on",
+          "required": false
+        },
+        "REDISUSER": {
+          "defaultValue": "default",
+          "description": "Username for authenticating with Redis",
+          "required": false
+        },
+        "REDIS_URL": {
+          "defaultValue": "redis://${{ REDISUSER }}:${{ REDIS_PASSWORD }}@${{ REDISHOST }}:${{ REDISPORT }}",
+          "description": "Connection string for connecting to Redis using the private network",
+          "required": false
+        },
+        "REDISPASSWORD": {
+          "defaultValue": "${{REDIS_PASSWORD}}",
+          "description": "Alias of REDIS_PASSWORD for clients that expect the unseparated name",
+          "required": false
+        },
+        "REDIS_PASSWORD": {
+          "defaultValue": "${{ secret(32, \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\") }}",
+          "description": "Randomly generated password for authenticating with Redis",
+          "required": false
+        }
+      }
+    }
+  },
+  "buckets": [
+    "Bucket"
+  ]
+}
